@@ -88,3 +88,11 @@ async def api_status():
             "GET /api/v1/races/{id}/analysis"
         ]
     }
+
+# Add test endpoints
+from app.api.endpoints import test_api
+app.include_router(test_api.router, prefix="/api/v1/test", tags=["testing"])
+
+# Add races router
+from app.api.endpoints import races
+app.include_router(races.router, prefix="/api/v1/races", tags=["races"])

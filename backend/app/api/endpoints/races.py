@@ -1,85 +1,46 @@
-"""Race analysis endpoints"""
+"""Race endpoints with real data"""
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from typing import List, Dict, Optional
 from app.services.ibu_full_service import ibu_service
 
 router = APIRouter()
 
-@router.get("/")
-async def get_races(
-    limit: int = Query(20, ge=1, le=100)
-):
+@router.get("/recent", response_model=List[Dict])
+async def get_recent_races(limit: int = Query(10, ge=1, le=50)):
     """Get recent races"""
-    try:
-        races = ibu_service.get_recent_races(limit=limit)
-        return races
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    races = ibu_service.get_recent_races(limit)
+    return races
 
-@router.get("/upcoming")
+@router.get("/upcoming", response_model=List[Dict])
 async def get_upcoming_races():
-    """Get upcoming races with Czech participation prediction"""
-    try:
-        races = ibu_service.get_upcoming_races()
-        return races
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/last")
-async def get_last_race():
-    """Get the most recent race with Czech athletes"""
-    try:
-        races = ibu_service.get_recent_races(limit=5)
-        
-        # Find first race with Czech athletes
-        for race in races:
-            analysis = ibu_service.get_race_analysis(race['race_id'])
-            if analysis and analysis.get('czech_athletes'):
-                return analysis
-        
-        # Return first race if no Czech found
-        if races:
-            return ibu_service.get_race_analysis(races[0]['race_id'])
-        
-        return None
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get upcoming races"""
+    races = ibu_service.get_upcoming_races()
+    return races
 
 @router.get("/{race_id}/analysis")
 async def get_race_analysis(race_id: str):
-    """Get detailed race analysis with Czech focus"""
-    try:
-        analysis = ibu_service.get_race_analysis(race_id)
-        
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Race not found")
-        
-        return analysis
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get detailed race analysis"""
+    analysis = ibu_service.get_race_analysis(race_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Race not found")
+    return analysis
 
-@router.get("/{race_id}/czechs")
-async def get_czech_performance(race_id: str):
-    """Get Czech athletes performance in specific race"""
-    try:
-        analysis = ibu_service.get_race_analysis(race_id)
-        
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Race not found")
-        
-        return {
-            "race_id": race_id,
-            "competition": analysis.get('competition'),
-            "czech_athletes": analysis.get('czech_athletes', []),
-            "best_czech": min(
-                analysis.get('czech_athletes', []),
-                key=lambda x: x.get('rank', 999),
-                default=None
-            )
+@router.get("/{race_id}/live")
+async def get_live_data(race_id: str):
+    """Get live race data (simulated)"""
+    # V reálné aplikaci by to bylo napojené na WebSocket
+    return {
+        "race_id": race_id,
+        "status": "in_progress",
+        "current_loop": 2,
+        "leaders": [
+            {"position": 1, "name": "OEBERG E.", "nation": "SWE", "time": "12:34.5"},
+            {"position": 2, "name": "DAVIDOVA M.", "nation": "CZE", "time": "+8.3"}
+        ],
+        "weather": {
+            "temperature": -5,
+            "wind_speed": 2.3,
+            "conditions": "Light snow"
         }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    }

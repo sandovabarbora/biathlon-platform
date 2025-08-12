@@ -1,7 +1,7 @@
 [project]
 name = "biathlon-analytics"
 version = "1.0.0"
-description = "Professional Biathlon Analytics Platform"
+description = "Professional Biathlon Reports Platform"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",

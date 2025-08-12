@@ -1,151 +1,192 @@
-import React from 'react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import React, { useState, useEffect } from 'react'
+import './Dashboard.css'
 
 const Dashboard = ({ athletes, onSelectAthlete }) => {
-    // Top performers
-    const topAthletes = athletes.slice(0, 10)
+  const [performances, setPerformances] = useState({})
+  const [recommendations, setRecommendations] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadAllPerformances()
+  }, [athletes])
+
+  const loadAllPerformances = async () => {
+    setLoading(true)
     
-    // Calculate team statistics
-    const teamStats = {
-        avgRank: athletes.reduce((sum, a) => sum + a.avg_rank, 0) / athletes.length || 0,
-        avgShooting: athletes.reduce((sum, a) => sum + a.shooting_accuracy, 0) / athletes.length || 0,
-        totalRaces: athletes.reduce((sum, a) => sum + a.total_races, 0),
-        totalPodiums: athletes.reduce((sum, a) => sum + (a.top3_rate * a.races_finished / 100), 0)
+    for (const athlete of athletes) {
+      try {
+        // Load performance
+        const perfResponse = await fetch(`/api/v1/athletes/${athlete.id}/performance`)
+        const perfData = await perfResponse.json()
+        setPerformances(prev => ({ ...prev, [athlete.id]: perfData }))
+        
+        // Load recommendations
+        const recResponse = await fetch(`/api/v1/analytics/training/${athlete.id}`)
+        const recData = await recResponse.json()
+        setRecommendations(prev => ({ ...prev, [athlete.id]: recData }))
+      } catch (error) {
+        console.error(`Error loading data for ${athlete.name}:`, error)
+      }
     }
+    
+    setLoading(false)
+  }
 
-    // Prepare chart data
-    const rankingData = topAthletes.map(a => ({
-        name: a.name.split(' ').pop(), // Last name only
-        rank: a.avg_rank,
-        shooting: a.shooting_accuracy
-    }))
+  const getStatusColor = (performance) => {
+    if (!performance) return 'neutral'
+    if (performance.recent_form > 5) return 'improving'
+    if (performance.recent_form < -5) return 'declining'
+    return 'stable'
+  }
 
-    return (
-        <div className="dashboard">
-            <h2 className="mb-4">Týmový přehled - Česká republika</h2>
-            
-            {/* Team Stats */}
-            <div className="grid grid-cols-4 mb-4">
-                <div className="stat-card">
-                    <div className="stat-label">Průměrné umístění</div>
-                    <div className="stat-value">{teamStats.avgRank.toFixed(1)}</div>
-                    <div className="stat-change positive">
-                        ↑ 2.3 vs minulý měsíc
-                    </div>
-                </div>
-                
-                <div className="stat-card">
-                    <div className="stat-label">Přesnost střelby</div>
-                    <div className="stat-value">{teamStats.avgShooting.toFixed(1)}%</div>
-                    <div className="stat-change negative">
-                        ↓ 0.8% vs minulý měsíc
-                    </div>
-                </div>
-                
-                <div className="stat-card">
-                    <div className="stat-label">Celkem závodů</div>
-                    <div className="stat-value">{teamStats.totalRaces}</div>
-                </div>
-                
-                <div className="stat-card">
-                    <div className="stat-label">Pódia tuto sezónu</div>
-                    <div className="stat-value">{Math.round(teamStats.totalPodiums)}</div>
-                </div>
-            </div>
-
-            {/* Athletes Table */}
-            <div className="card mb-4">
-                <div className="card-header">
-                    <h3 className="card-title">Závodníci - aktuální forma</h3>
-                    <button className="btn btn-sm btn-secondary">
-                        Export CSV
-                    </button>
-                </div>
-                
-                <div className="table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Jméno</th>
-                                <th>Průměr</th>
-                                <th>Medián</th>
-                                <th>Střelba</th>
-                                <th>Lyže</th>
-                                <th>Top 10</th>
-                                <th>Forma</th>
-                                <th>Akce</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topAthletes.map((athlete, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <strong>{athlete.name}</strong>
-                                        <span className="text-gray text-sm"> ({athlete.nation})</span>
-                                    </td>
-                                    <td>{athlete.avg_rank.toFixed(1)}</td>
-                                    <td>{athlete.median_rank?.toFixed(1) || '-'}</td>
-                                    <td>
-                                        <span className={`badge ${athlete.shooting_accuracy > 80 ? 'badge-success' : 'badge-warning'}`}>
-                                            {athlete.shooting_accuracy.toFixed(1)}%
-                                        </span>
-                                    </td>
-                                    <td>{athlete.ski_speed_index?.toFixed(0) || '-'}</td>
-                                    <td>{athlete.top10_rate.toFixed(1)}%</td>
-                                    <td>
-                                        {athlete.improvement_trend > 0 ? (
-                                            <span className="text-success">↑ {athlete.improvement_trend.toFixed(1)}</span>
-                                        ) : athlete.improvement_trend < 0 ? (
-                                            <span className="text-danger">↓ {Math.abs(athlete.improvement_trend).toFixed(1)}</span>
-                                        ) : (
-                                            <span className="text-gray">→ 0.0</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <button 
-                                            className="btn btn-sm btn-primary"
-                                            onClick={() => onSelectAthlete(athlete.name)}
-                                        >
-                                            Detail
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="card">
-                    <h3 className="card-title mb-3">Průměrné umístění</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={rankingData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis domain={[0, 50]} />
-                            <Tooltip />
-                            <Bar dataKey="rank" fill="#2563eb" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-                
-                <div className="card">
-                    <h3 className="card-title mb-3">Přesnost střelby</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={rankingData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis domain={[60, 100]} />
-                            <Tooltip />
-                            <Bar dataKey="shooting" fill="#10b981" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
+  const getPriorityAlerts = () => {
+    const alerts = []
+    
+    for (const athlete of athletes) {
+      const perf = performances[athlete.id]
+      const recs = recommendations[athlete.id]
+      
+      if (perf?.shooting?.total_accuracy < 75) {
+        alerts.push({
+          athlete,
+          type: 'critical',
+          issue: `Shooting accuracy ${perf.shooting.total_accuracy.toFixed(1)}%`,
+          action: 'Immediate shooting session needed'
+        })
+      }
+      
+      if (perf?.recent_form < -10) {
+        alerts.push({
+          athlete,
+          type: 'warning',
+          issue: 'Declining form',
+          action: 'Review training load'
+        })
+      }
+    }
+    
+    return alerts.sort((a, b) => 
+      a.type === 'critical' ? -1 : b.type === 'critical' ? 1 : 0
     )
+  }
+
+  if (loading) {
+    return <div className="loading-spinner">Loading Czech team data...</div>
+  }
+
+  const alerts = getPriorityAlerts()
+
+  return (
+    <div className="dashboard">
+      {/* Morning Brief Section */}
+      <section className="morning-brief">
+        <h2>Morning Brief - {new Date().toLocaleDateString('cs-CZ')}</h2>
+        
+        {alerts.length > 0 && (
+          <div className="alerts">
+            <h3>⚠️ Priority Alerts</h3>
+            {alerts.map((alert, i) => (
+              <div key={i} className={`alert ${alert.type}`}>
+                <div className="alert-header">
+                  <span className="athlete-name">{alert.athlete.name}</span>
+                  <span className={`badge ${alert.type}`}>{alert.type}</span>
+                </div>
+                <p className="issue">{alert.issue}</p>
+                <p className="action">→ {alert.action}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="positive-momentum">
+          <h3>✅ Positive Trends</h3>
+          {athletes.filter(a => performances[a.id]?.recent_form > 5).map(athlete => (
+            <div key={athlete.id} className="momentum-item">
+              <span className="name">{athlete.name}</span>
+              <span className="trend">↑ {performances[athlete.id].recent_form.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Athletes Grid */}
+      <section className="athletes-grid">
+        <h2>Czech Team Overview</h2>
+        <div className="athlete-cards">
+          {athletes.map(athlete => {
+            const perf = performances[athlete.id]
+            const status = getStatusColor(perf)
+            
+            return (
+              <div 
+                key={athlete.id} 
+                className={`athlete-card ${status}`}
+                onClick={() => onSelectAthlete(athlete)}
+              >
+                <div className="card-header">
+                  <h3>{athlete.name}</h3>
+                  <span className={`status-dot ${status}`}></span>
+                </div>
+                
+                {perf && (
+                  <div className="card-stats">
+                    <div className="stat">
+                      <label>Avg Rank</label>
+                      <value>{perf.avg_rank?.toFixed(1)}</value>
+                    </div>
+                    <div className="stat">
+                      <label>Shooting</label>
+                      <value className={perf.shooting?.total_accuracy > 80 ? 'good' : 'bad'}>
+                        {perf.shooting?.total_accuracy?.toFixed(0)}%
+                      </value>
+                    </div>
+                    <div className="stat">
+                      <label>Form</label>
+                      <value className={status}>
+                        {perf.recent_form > 0 ? '↑' : perf.recent_form < 0 ? '↓' : '→'}
+                        {Math.abs(perf.recent_form).toFixed(1)}
+                      </value>
+                    </div>
+                    <div className="stat">
+                      <label>Points</label>
+                      <value>{perf.points_total}</value>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="card-actions">
+                  <button className="view-details">View Timeline →</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Team Summary */}
+      <section className="team-summary">
+        <h2>Team Statistics</h2>
+        <div className="summary-stats">
+          <div className="summary-stat">
+            <label>Team Average Rank</label>
+            <value>
+              {(athletes.reduce((sum, a) => 
+                sum + (performances[a.id]?.avg_rank || 0), 0) / athletes.length
+              ).toFixed(1)}
+            </value>
+          </div>
+          <div className="summary-stat">
+            <label>Team Shooting Average</label>
+            <value>
+              {(athletes.reduce((sum, a) => 
+                sum + (performances[a.id]?.shooting?.total_accuracy || 0), 0) / athletes.length
+              ).toFixed(1)}%
+            </value>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 export default Dashboard

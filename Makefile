@@ -1,8 +1,11 @@
 # ==========================================
-# 🎿 BIATHLON APP - Makefile
+# 🎿 BIATHLON ANALYTICS - Makefile
 # ==========================================
 
-.PHONY: help install install-dev install-all clean test run dev prod format lint check docs
+.PHONY: help setup install run dev backend frontend test clean reset docker lint format check
+
+# Default target
+.DEFAULT_GOAL := help
 
 # Colors for output
 BLUE := \033[0;34m
@@ -11,252 +14,219 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-# Default target
-.DEFAULT_GOAL := help
-
 help: ## Show this help message
-	@echo "$(BLUE)🎿 BIATHLON APP - Available commands:$(NC)"
+	@echo "$(BLUE)🎿 BIATHLON ANALYTICS PLATFORM$(NC)"
+	@echo "================================"
 	@echo ""
+	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
 	@echo ""
-	@echo "$(YELLOW)Quick start:$(NC)"
-	@echo "  make install     - Install core dependencies"
-	@echo "  make dev        - Run in development mode"
-	@echo ""
+	@echo "Quick start:"
+	@echo "  $$ make setup"
+	@echo "  $$ make run"
 
-# ==================== INSTALLATION ====================
+# ==================== SETUP ====================
 
-install: ## Install core dependencies with UV
-	@echo "$(BLUE)📦 Installing core dependencies...$(NC)"
-	@command -v uv >/dev/null 2>&1 || { echo "$(RED)UV not found. Installing...$(NC)"; curl -LsSf https://astral.sh/uv/install.sh | sh; }
-	@uv venv || true
-	@uv pip install -e .
-	@echo "$(GREEN)✅ Core dependencies installed$(NC)"
+setup: ## Complete initial setup
+	@echo "$(BLUE)🚀 Running complete setup...$(NC)"
+	@./setup.sh
+	@echo "$(GREEN)✅ Setup complete!$(NC)"
 
-install-dev: install ## Install with development dependencies
-	@echo "$(BLUE)📦 Installing development dependencies...$(NC)"
-	@uv pip install -e ".[dev]"
-	@echo "$(GREEN)✅ Development dependencies installed$(NC)"
+install: ## Install/update dependencies
+	@echo "$(BLUE)📦 Installing dependencies...$(NC)"
+	@cd backend && uv pip sync requirements.txt
+	@cd frontend && npm install
+	@echo "$(GREEN)✅ Dependencies installed$(NC)"
 
-install-ml: install ## Install with ML dependencies
-	@echo "$(BLUE)📦 Installing ML dependencies...$(NC)"
-	@uv pip install -e ".[ml]"
-	@echo "$(GREEN)✅ ML dependencies installed$(NC)"
+install-dev: ## Install with dev dependencies
+	@echo "$(BLUE)📦 Installing dev dependencies...$(NC)"
+	@cd backend && source .venv/bin/activate && uv pip install -e ".[dev]"
+	@cd frontend && npm install --include=dev
+	@echo "$(GREEN)✅ Dev dependencies installed$(NC)"
 
-install-all: ## Install all dependencies
-	@echo "$(BLUE)📦 Installing all dependencies...$(NC)"
-	@uv venv || true
-	@uv pip install -e ".[dev,ml,viz,prod]"
-	@echo "$(GREEN)✅ All dependencies installed$(NC)"
+# ==================== RUNNING ====================
 
-update: ## Update all dependencies
-	@echo "$(BLUE)📦 Updating dependencies...$(NC)"
-	@uv pip install --upgrade -e .
-	@echo "$(GREEN)✅ Dependencies updated$(NC)"
+run: ## Run full application (backend + frontend)
+	@echo "$(BLUE)🎿 Starting Biathlon Analytics...$(NC)"
+	@./run.sh
 
-# ==================== DEVELOPMENT ====================
+dev: run ## Alias for run
 
-run: ## Run the application
-	@echo "$(BLUE)🚀 Starting Biathlon App...$(NC)"
-	@uv run python -m biathlon_app.main
+backend: ## Run backend only
+	@echo "$(BLUE)🐍 Starting backend...$(NC)"
+	@cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-dev: ## Run in development mode with auto-reload
-	@echo "$(BLUE)🚀 Starting in development mode...$(NC)"
-	@uv run uvicorn biathlon_app.main:app --reload --host 0.0.0.0 --port 8000
+frontend: ## Run frontend only
+	@echo "$(BLUE)⚛️ Starting frontend...$(NC)"
+	@cd frontend && npm run dev
 
-prod: ## Run in production mode with gunicorn
-	@echo "$(BLUE)🚀 Starting in production mode...$(NC)"
-	@uv run gunicorn biathlon_app.main:app \
-		--workers 4 \
-		--worker-class uvicorn.workers.UvicornWorker \
-		--bind 0.0.0.0:8000 \
-		--log-level info
-
-debug: ## Run with debug logging
-	@echo "$(BLUE)🐛 Starting with debug logging...$(NC)"
-	@LOG_LEVEL=DEBUG uv run python -m biathlon_app.main
+worker: ## Run background worker (if needed)
+	@echo "$(BLUE)⚙️ Starting worker...$(NC)"
+	@cd backend && source .venv/bin/activate && python -m app.worker
 
 # ==================== TESTING ====================
 
 test: ## Run all tests
 	@echo "$(BLUE)🧪 Running tests...$(NC)"
-	@uv run pytest tests/ -v
+	@make test-backend
+	@make test-frontend
+	@echo "$(GREEN)✅ All tests passed$(NC)"
 
-test-cov: ## Run tests with coverage report
-	@echo "$(BLUE)🧪 Running tests with coverage...$(NC)"
-	@uv run pytest tests/ -v --cov=biathlon_app --cov-report=term-missing --cov-report=html
-	@echo "$(GREEN)✅ Coverage report generated in htmlcov/index.html$(NC)"
+test-backend: ## Run backend tests
+	@echo "$(BLUE)Testing backend...$(NC)"
+	@cd backend && source .venv/bin/activate && pytest tests/ -v
+
+test-frontend: ## Run frontend tests
+	@echo "$(BLUE)Testing frontend...$(NC)"
+	@cd frontend && npm test
+
+test-coverage: ## Run tests with coverage
+	@echo "$(BLUE)📊 Running tests with coverage...$(NC)"
+	@cd backend && source .venv/bin/activate && pytest tests/ --cov=app --cov-report=html --cov-report=term
+	@echo "$(GREEN)Coverage report: backend/htmlcov/index.html$(NC)"
 
 test-watch: ## Run tests in watch mode
-	@echo "$(BLUE)🧪 Running tests in watch mode...$(NC)"
-	@uv run ptw tests/
-
-test-unit: ## Run unit tests only
-	@echo "$(BLUE)🧪 Running unit tests...$(NC)"
-	@uv run pytest tests/unit/ -v
-
-test-integration: ## Run integration tests only
-	@echo "$(BLUE)🧪 Running integration tests...$(NC)"
-	@uv run pytest tests/integration/ -v
+	@cd backend && source .venv/bin/activate && pytest-watch
 
 # ==================== CODE QUALITY ====================
 
-format: ## Format code with black and ruff
-	@echo "$(BLUE)🎨 Formatting code...$(NC)"
-	@uv run black src/ tests/
-	@uv run ruff check --fix src/ tests/
-	@echo "$(GREEN)✅ Code formatted$(NC)"
-
-lint: ## Run linting checks
+lint: ## Run linters
 	@echo "$(BLUE)🔍 Running linters...$(NC)"
-	@uv run ruff check src/ tests/
-	@uv run mypy src/
+	@cd backend && source .venv/bin/activate && ruff check app/ tests/
+	@cd frontend && npm run lint
 	@echo "$(GREEN)✅ Linting complete$(NC)"
+
+format: ## Format code
+	@echo "$(BLUE)🎨 Formatting code...$(NC)"
+	@cd backend && source .venv/bin/activate && black app/ tests/ && ruff check --fix app/ tests/
+	@echo "$(GREEN)✅ Code formatted$(NC)"
 
 check: lint test ## Run all checks (lint + test)
 	@echo "$(GREEN)✅ All checks passed$(NC)"
 
-clean-pyc: ## Remove Python cache files
-	@echo "$(BLUE)🧹 Cleaning Python cache...$(NC)"
-	@find . -type f -name '*.pyc' -delete
-	@find . -type d -name '__pycache__' -delete
-	@find . -type d -name '.pytest_cache' -delete
-	@find . -type d -name '.mypy_cache' -delete
-	@echo "$(GREEN)✅ Python cache cleaned$(NC)"
+type-check: ## Run type checking
+	@echo "$(BLUE)🔍 Type checking...$(NC)"
+	@cd backend && source .venv/bin/activate && mypy app/
 
 # ==================== DATABASE ====================
 
-db-init: ## Initialize database
-	@echo "$(BLUE)🗄️ Initializing database...$(NC)"
-	@uv run python -m biathlon_app.data.init_db
-	@echo "$(GREEN)✅ Database initialized$(NC)"
-
 db-migrate: ## Run database migrations
 	@echo "$(BLUE)🗄️ Running migrations...$(NC)"
-	@uv run alembic upgrade head
-	@echo "$(GREEN)✅ Migrations complete$(NC)"
+	@cd backend && source .venv/bin/activate && alembic upgrade head
 
-db-reset: ## Reset database (WARNING: destroys all data)
-	@echo "$(RED)⚠️  WARNING: This will destroy all data!$(NC)"
+db-rollback: ## Rollback last migration
+	@echo "$(YELLOW)⏪ Rolling back migration...$(NC)"
+	@cd backend && source .venv/bin/activate && alembic downgrade -1
+
+db-reset: ## Reset database (WARNING: deletes all data)
+	@echo "$(RED)⚠️  WARNING: This will delete all data!$(NC)"
 	@echo "Press Ctrl+C to cancel, or wait 3 seconds..."
 	@sleep 3
-	@uv run python -m biathlon_app.data.reset_db
+	@cd backend && source .venv/bin/activate && alembic downgrade base && alembic upgrade head
 	@echo "$(GREEN)✅ Database reset$(NC)"
 
-# ==================== DATA MANAGEMENT ====================
-
-data-load: ## Load sample data
-	@echo "$(BLUE)📊 Loading sample data...$(NC)"
-	@uv run python -m biathlon_app.data.load_samples
-	@echo "$(GREEN)✅ Sample data loaded$(NC)"
-
-data-fetch: ## Fetch latest IBU data
-	@echo "$(BLUE)📊 Fetching latest IBU data...$(NC)"
-	@uv run python -m biathlon_app.data.fetch_ibu
-	@echo "$(GREEN)✅ Data fetched$(NC)"
-
-data-export: ## Export data to CSV
-	@echo "$(BLUE)📊 Exporting data...$(NC)"
-	@uv run python -m biathlon_app.data.export --format csv --output exports/
-	@echo "$(GREEN)✅ Data exported to exports/$(NC)"
-
-# ==================== DOCUMENTATION ====================
-
-docs: ## Generate documentation
-	@echo "$(BLUE)📚 Generating documentation...$(NC)"
-	@uv run mkdocs build
-	@echo "$(GREEN)✅ Documentation built in site/$(NC)"
-
-docs-serve: ## Serve documentation locally
-	@echo "$(BLUE)📚 Serving documentation...$(NC)"
-	@uv run mkdocs serve
-
-api-docs: ## Open API documentation in browser
-	@echo "$(BLUE)📚 Opening API docs...$(NC)"
-	@python -m webbrowser http://localhost:8000/docs
+db-seed: ## Seed database with sample data
+	@echo "$(BLUE)🌱 Seeding database...$(NC)"
+	@cd backend && source .venv/bin/activate && python -m app.scripts.seed_db
+	@echo "$(GREEN)✅ Database seeded$(NC)"
 
 # ==================== DOCKER ====================
 
-docker-build: ## Build Docker image
-	@echo "$(BLUE)🐳 Building Docker image...$(NC)"
-	@docker build -t biathlon-app:latest .
-	@echo "$(GREEN)✅ Docker image built$(NC)"
+docker-build: ## Build Docker images
+	@echo "$(BLUE)🐳 Building Docker images...$(NC)"
+	@docker-compose build
+	@echo "$(GREEN)✅ Images built$(NC)"
 
-docker-run: ## Run Docker container
-	@echo "$(BLUE)🐳 Running Docker container...$(NC)"
-	@docker run -p 8000:8000 -v $(PWD)/data:/app/data biathlon-app:latest
-
-docker-compose-up: ## Start with docker-compose
-	@echo "$(BLUE)🐳 Starting services...$(NC)"
+docker-up: ## Start Docker containers
+	@echo "$(BLUE)🐳 Starting containers...$(NC)"
 	@docker-compose up -d
-	@echo "$(GREEN)✅ Services started$(NC)"
+	@echo "$(GREEN)✅ Containers started$(NC)"
 
-docker-compose-down: ## Stop docker-compose services
-	@echo "$(BLUE)🐳 Stopping services...$(NC)"
+docker-down: ## Stop Docker containers
+	@echo "$(YELLOW)Stopping containers...$(NC)"
 	@docker-compose down
-	@echo "$(GREEN)✅ Services stopped$(NC)"
+
+docker-logs: ## Show Docker logs
+	@docker-compose logs -f
+
+docker-clean: ## Clean Docker resources
+	@echo "$(YELLOW)🧹 Cleaning Docker resources...$(NC)"
+	@docker-compose down -v
+	@docker system prune -f
 
 # ==================== UTILITIES ====================
 
-shell: ## Open Python shell with app context
-	@echo "$(BLUE)🐍 Opening Python shell...$(NC)"
-	@uv run ipython
+clean: ## Clean cache and temporary files
+	@echo "$(YELLOW)🧹 Cleaning cache files...$(NC)"
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@rm -rf backend/.coverage backend/htmlcov
+	@rm -rf frontend/dist frontend/build
+	@echo "$(GREEN)✅ Cleaned$(NC)"
 
-jupyter: ## Start Jupyter notebook
-	@echo "$(BLUE)📓 Starting Jupyter...$(NC)"
-	@uv run jupyter notebook
-
-clean: clean-pyc ## Clean all temporary files
-	@echo "$(BLUE)🧹 Cleaning temporary files...$(NC)"
-	@rm -rf .coverage
-	@rm -rf htmlcov/
-	@rm -rf dist/
-	@rm -rf build/
-	@rm -rf *.egg-info
-	@rm -rf .ruff_cache/
-	@echo "$(GREEN)✅ Cleanup complete$(NC)"
-
-reset: clean ## Full reset (clean + remove venv)
-	@echo "$(RED)⚠️  Removing virtual environment...$(NC)"
-	@rm -rf .venv/
-	@echo "$(GREEN)✅ Full reset complete$(NC)"
-
-version: ## Show version
-	@echo "$(BLUE)Biathlon App Version:$(NC)"
-	@uv run python -c "from biathlon_app import __version__; print(__version__)"
-
-# ==================== CI/CD ====================
-
-ci: install-dev lint test ## Run CI pipeline
-	@echo "$(GREEN)✅ CI pipeline passed$(NC)"
-
-pre-commit: format lint test ## Run pre-commit checks
-	@echo "$(GREEN)✅ Ready to commit$(NC)"
-
-release: check ## Create a new release
-	@echo "$(BLUE)📦 Creating release...$(NC)"
-	@uv run python -m build
-	@echo "$(GREEN)✅ Release created in dist/$(NC)"
-
-# ==================== MONITORING ====================
+reset: clean ## Full reset (clean + remove venv & node_modules)
+	@echo "$(RED)🔄 Full reset...$(NC)"
+	@rm -rf backend/.venv
+	@rm -rf frontend/node_modules
+	@echo "$(GREEN)✅ Reset complete. Run 'make setup' to reinstall$(NC)"
 
 logs: ## Show application logs
-	@echo "$(BLUE)📋 Application logs:$(NC)"
-	@tail -f logs/biathlon.log
+	@echo "$(BLUE)📋 Showing logs...$(NC)"
+	@tail -f backend/logs/app.log
 
-stats: ## Show application statistics
-	@echo "$(BLUE)📊 Application statistics:$(NC)"
-	@uv run python -m biathlon_app.utils.stats
+shell: ## Open Python shell with app context
+	@cd backend && source .venv/bin/activate && python -m IPython
 
-health: ## Check application health
-	@echo "$(BLUE)🏥 Health check:$(NC)"
-	@curl -s http://localhost:8000/health | python -m json.tool
+repl: shell ## Alias for shell
 
-# ==================== SHORTCUTS ====================
+# ==================== DEPLOYMENT ====================
 
-i: install        ## Shortcut for install
-d: dev           ## Shortcut for dev
-t: test          ## Shortcut for test
-f: format        ## Shortcut for format
-l: lint          ## Shortcut for lint
-c: clean         ## Shortcut for clean
+build: ## Build for production
+	@echo "$(BLUE)📦 Building for production...$(NC)"
+	@cd frontend && npm run build
+	@cd backend && source .venv/bin/activate && python -m build
+	@echo "$(GREEN)✅ Build complete$(NC)"
+
+deploy-staging: ## Deploy to staging
+	@echo "$(BLUE)🚀 Deploying to staging...$(NC)"
+	@echo "TODO: Add staging deployment"
+
+deploy-production: ## Deploy to production
+	@echo "$(RED)🚀 Deploying to PRODUCTION...$(NC)"
+	@echo "Are you sure? [y/N]" && read ans && [ $${ans:-N} = y ]
+	@echo "TODO: Add production deployment"
+
+# ==================== DEVELOPMENT TOOLS ====================
+
+new-migration: ## Create new database migration
+	@echo "$(BLUE)Creating new migration...$(NC)"
+	@read -p "Migration name: " name; \
+	cd backend && source .venv/bin/activate && alembic revision --autogenerate -m "$$name"
+
+api-docs: ## Open API documentation
+	@echo "$(BLUE)Opening API docs...$(NC)"
+	@open http://localhost:8000/docs || xdg-open http://localhost:8000/docs
+
+tunnel: ## Create ngrok tunnel (for testing)
+	@echo "$(BLUE)Creating tunnel...$(NC)"
+	@ngrok http 8000
+
+monitor: ## Open monitoring dashboard
+	@echo "$(BLUE)Opening monitoring...$(NC)"
+	@open http://localhost:3000/admin
+
+# ==================== GIT HELPERS ====================
+
+commit: format lint ## Format, lint, then commit
+	@git add -A && git commit
+
+push: check ## Run checks then push
+	@git push
+
+pr: check ## Create pull request
+	@gh pr create
+
+.PHONY: all $(MAKECMDGOALS)

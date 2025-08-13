@@ -12,11 +12,11 @@ function Navigation() {
   const location = useLocation()
   
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '◼' },
-    { path: '/athletes', label: 'Athletes', icon: '▲' },
-    { path: '/races', label: 'Races', icon: '●' },
-    { path: '/analytics', label: 'Analytic', icon: '■' },
-    { path: '/coach', label: 'AI Coach', icon: '◆' }
+    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/athletes', label: 'Athletes', icon: '🎿' },
+    { path: '/races', label: 'Races', icon: '🏁' },
+    { path: '/analytics', label: 'Analytics', icon: '📈' },
+    { path: '/coach', label: 'AI Coach', icon: '🤖' }
   ]
   
   return (
@@ -27,7 +27,7 @@ function Navigation() {
             <div className="flag-blue"></div>
             <div className="flag-red"></div>
           </div>
-          <span className="brand-title">CZECH BIATHLON ANALYTICS</span>
+          <span className="brand-title">CZECH BIATHLON ANALYTICS 2.0</span>
         </div>
         
         <div className="nav-links">
@@ -46,7 +46,7 @@ function Navigation() {
         <div className="nav-status">
           <div className="live-indicator">
             <span className="status-dot active"></span>
-            <span>LIVE DATA</span>
+            <span>FATIGUE ENGINE</span>
           </div>
         </div>
       </div>

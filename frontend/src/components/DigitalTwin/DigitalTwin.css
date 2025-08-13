@@ -1,0 +1,249 @@
+.digital-twin {
+  padding: 2rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.twin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.twin-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.twin-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.twin-tabs button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.twin-tabs button:hover {
+  background: var(--bg-primary);
+}
+
+.twin-tabs button.active {
+  background: var(--czech-blue);
+  color: white;
+}
+
+/* Overview */
+.twin-overview {
+  display: grid;
+  gap: 2rem;
+}
+
+.physiology-chart {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.physiology-chart h3 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.parameters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.param-card {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.param-card h4 {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.param-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--czech-blue);
+}
+
+.param-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Simulation */
+.race-simulation {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sim-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.race-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.race-buttons button {
+  padding: 0.5rem 1rem;
+  background: var(--czech-blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.race-buttons button:hover {
+  background: #0D3660;
+}
+
+.result-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.result-card {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.result-card h4 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.result-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.timeline-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.segment {
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.segment.ski {
+  border-left: 3px solid var(--czech-blue);
+}
+
+.segment.shooting {
+  border-left: 3px solid var(--accent-warning);
+}
+
+/* What-If */
+.scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.scenario-card {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.scenario-card h4 {
+  margin-bottom: 1rem;
+  color: var(--czech-blue);
+}
+
+.scenario-metric {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.scenario-metric .value {
+  font-weight: 700;
+}
+
+.scenario-metric .value.positive {
+  color: var(--accent-success);
+}
+
+/* Loading */
+.twin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .parameters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .result-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .scenarios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .twin-tabs {
+    flex-direction: column;
+  }
+  
+  .parameters-grid {
+    grid-template-columns: 1fr;
+  }
+}

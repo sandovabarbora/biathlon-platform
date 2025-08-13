@@ -34,3 +34,21 @@ api_router.include_router(
     prefix="/shooting",
     tags=["shooting"]
 )
+
+# Add Digital Twin routes
+from app.api.endpoints import digital_twin
+
+api_router.include_router(
+    digital_twin.router,
+    prefix="/digital-twin",
+    tags=["digital-twin"]
+)
+
+# Add Digital Twin routes
+from app.api.endpoints import digital_twin
+
+api_router.include_router(
+    digital_twin.router,
+    prefix="/digital-twin",
+    tags=["digital-twin"]
+)

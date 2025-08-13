@@ -3,10 +3,10 @@ import './Athletes.css'
 
 const Athletes = () => {
   const [athletes, setAthletes] = useState([])
-  const [selectedAthletes, setSelectedAthletes] = useState([])
+  const [selectedAthlete, setSelectedAthlete] = useState(null)
   const [compareMode, setCompareMode] = useState(false)
+  const [selectedForCompare, setSelectedForCompare] = useState([])
   const [filter, setFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('rank')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,186 +20,239 @@ const Athletes = () => {
       setAthletes(data)
       setLoading(false)
     } catch (err) {
+      console.error('Error fetching athletes:', err)
       setLoading(false)
     }
   }
 
-  const toggleAthleteSelection = (athlete) => {
-    if (selectedAthletes.find(a => a.id === athlete.id)) {
-      setSelectedAthletes(selectedAthletes.filter(a => a.id !== athlete.id))
-    } else if (selectedAthletes.length < 3) {
-      setSelectedAthletes([...selectedAthletes, athlete])
+  const fetchAthleteDetails = async (athleteId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/athletes/${athleteId}/performance`)
+      const data = await response.json()
+      setSelectedAthlete({...selectedAthlete, performance: data})
+    } catch (err) {
+      console.error('Error fetching athlete details:', err)
     }
   }
 
-  const getPerformanceColor = (rank) => {
-    if (rank <= 10) return '#10b981'
-    if (rank <= 30) return '#3b82f6'
-    if (rank <= 50) return '#f59e0b'
-    return '#ef4444'
+  const toggleCompareSelection = (athlete) => {
+    if (selectedForCompare.find(a => a.id === athlete.id)) {
+      setSelectedForCompare(selectedForCompare.filter(a => a.id !== athlete.id))
+    } else if (selectedForCompare.length < 3) {
+      setSelectedForCompare([...selectedForCompare, athlete])
+    }
   }
 
-  const sortedAthletes = [...athletes].sort((a, b) => {
-    if (sortBy === 'rank') return parseInt(a.world_rank) - parseInt(b.world_rank)
-    if (sortBy === 'points') return parseInt(b.world_cup_points) - parseInt(a.world_cup_points)
-    if (sortBy === 'name') return a.name.localeCompare(b.name)
-    return 0
+  const filteredAthletes = athletes.filter(athlete => {
+    const rank = parseInt(athlete.world_rank) || 999
+    if (filter === 'top30') return rank <= 30
+    if (filter === 'rising') return rank <= 50 && rank > 30
+    return true
   })
 
   if (loading) {
-    return <div className="loading-container"><div className="spinner"></div></div>
+    return (
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading Athletes Data...</p>
+      </div>
+    )
   }
 
   return (
     <div className="athletes-page">
-      {/* Header with Controls */}
-      <div className="page-header">
-        <div className="header-top">
-          <h1>Athletes Management</h1>
-          <button 
-            className={`compare-btn ${compareMode ? 'active' : ''}`}
-            onClick={() => setCompareMode(!compareMode)}
-          >
-            Compare Mode {selectedAthletes.length > 0 && `(${selectedAthletes.length})`}
-          </button>
+      <div className="container">
+        {/* PAGE HEADER */}
+        <div className="page-header">
+          <h1 className="page-title">ATHLETES MANAGEMENT</h1>
+          <div className="header-actions">
+            <button 
+              className={`btn ${compareMode ? 'btn-primary' : ''}`}
+              onClick={() => setCompareMode(!compareMode)}
+            >
+              COMPARE MODE {selectedForCompare.length > 0 && `(${selectedForCompare.length})`}
+            </button>
+            <button className="btn">ADD ATHLETE</button>
+          </div>
         </div>
-        
-        <div className="controls-bar">
+
+        {/* FILTERS */}
+        <div className="filters-bar">
           <div className="filter-group">
             <button 
-              className={filter === 'all' ? 'active' : ''}
+              className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
               onClick={() => setFilter('all')}
-            >All Athletes</button>
+            >
+              ALL ATHLETES ({athletes.length})
+            </button>
             <button 
-              className={filter === 'top30' ? 'active' : ''}
+              className={`filter-btn ${filter === 'top30' ? 'active' : ''}`}
               onClick={() => setFilter('top30')}
-            >Top 30</button>
+            >
+              TOP 30
+            </button>
             <button 
-              className={filter === 'rising' ? 'active' : ''}
+              className={`filter-btn ${filter === 'rising' ? 'active' : ''}`}
               onClick={() => setFilter('rising')}
-            >Rising Stars</button>
+            >
+              RISING STARS
+            </button>
           </div>
           
-          <div className="sort-group">
-            <label>Sort by:</label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="rank">World Rank</option>
-              <option value="points">Points</option>
-              <option value="name">Name</option>
-            </select>
+          <div className="search-box">
+            <input type="text" placeholder="SEARCH ATHLETE..." />
+            <button className="search-btn">◼</button>
           </div>
         </div>
-      </div>
 
-      {/* Athletes Grid */}
-      <div className="athletes-grid">
-        {sortedAthletes
-          .filter(a => {
-            if (filter === 'top30') return parseInt(a.world_rank) <= 30
-            if (filter === 'rising') return parseInt(a.world_rank) <= 50
-            return true
-          })
-          .map(athlete => {
-            const rank = parseInt(athlete.world_rank)
-            const isSelected = selectedAthletes.find(a => a.id === athlete.id)
+        {/* ATHLETES GRID */}
+        <div className="athletes-grid">
+          {filteredAthletes.map(athlete => {
+            const rank = parseInt(athlete.world_rank) || 999
+            const isSelected = selectedForCompare.find(a => a.id === athlete.id)
             
             return (
               <div 
                 key={athlete.id} 
                 className={`athlete-card ${isSelected ? 'selected' : ''} ${compareMode ? 'compare-mode' : ''}`}
-                onClick={() => compareMode && toggleAthleteSelection(athlete)}
+                onClick={() => compareMode && toggleCompareSelection(athlete)}
               >
-                {/* Performance Indicator */}
-                <div 
-                  className="performance-indicator"
-                  style={{background: getPerformanceColor(rank)}}
-                ></div>
-                
                 {/* Rank Badge */}
-                <div className="rank-badge">
-                  <span className="rank-number">#{rank}</span>
-                  <span className="rank-change">
-                    {rank <= 20 ? '↑2' : rank <= 40 ? '→' : '↓3'}
-                  </span>
+                <div className={`rank-display ${rank <= 30 ? 'top' : ''}`}>
+                  <span className="rank-number">#{athlete.world_rank || 'N/A'}</span>
+                  <span className="rank-change">↑2</span>
                 </div>
                 
-                {/* Athlete Info */}
-                <div className="athlete-main-info">
-                  <h3>{athlete.name}</h3>
-                  <div className="athlete-tags">
-                    <span className="tag nation">CZE</span>
-                    {rank <= 10 && <span className="tag elite">ELITE</span>}
-                    {rank > 30 && rank <= 50 && <span className="tag potential">POTENTIAL</span>}
+                {/* Main Info */}
+                <div className="athlete-main">
+                  <h3 className="athlete-name">{athlete.name}</h3>
+                  <div className="athlete-meta">
+                    <span className="meta-item">IBU: {athlete.id}</span>
+                    <span className="meta-item">CZE</span>
                   </div>
                 </div>
                 
                 {/* Stats Grid */}
-                <div className="athlete-stats-grid">
-                  <div className="stat-item">
-                    <span className="stat-label">WC Points</span>
-                    <span className="stat-value">{athlete.world_cup_points}</span>
+                <div className="stats-grid">
+                  <div className="stat-box">
+                    <span className="stat-value">{athlete.world_cup_points || 0}</span>
+                    <span className="stat-label">POINTS</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Shooting</span>
-                    <span className="stat-value">82%</span>
+                  <div className="stat-box">
+                    <span className="stat-value">87%</span>
+                    <span className="stat-label">SHOOTING</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Speed Rank</span>
-                    <span className="stat-value">#{rank + 5}</span>
+                  <div className="stat-box">
+                    <span className="stat-value">24:32</span>
+                    <span className="stat-label">AVG TIME</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Form</span>
-                    <span className="stat-value trend-up">↑ Good</span>
+                  <div className="stat-box">
+                    <span className="stat-value good">↑12</span>
+                    <span className="stat-label">FORM</span>
                   </div>
                 </div>
                 
                 {/* Action Buttons */}
-                <div className="athlete-actions">
-                  <button className="action-btn primary">View Details</button>
-                  <button className="action-btn secondary">Training Plan</button>
+                <div className="card-actions">
+                  <button 
+                    className="action-btn primary"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedAthlete(athlete)
+                      fetchAthleteDetails(athlete.id)
+                    }}
+                  >
+                    VIEW DETAILS
+                  </button>
+                  <button className="action-btn">TRAINING</button>
                 </div>
                 
                 {/* Compare Checkbox */}
                 {compareMode && (
-                  <div className="compare-checkbox">
-                    <input 
-                      type="checkbox" 
-                      checked={isSelected}
-                      onChange={() => {}}
-                    />
+                  <div className="compare-indicator">
+                    {isSelected ? '✓' : '○'}
                   </div>
                 )}
               </div>
             )
           })}
-      </div>
+        </div>
 
-      {/* Comparison Panel */}
-      {compareMode && selectedAthletes.length > 1 && (
-        <div className="comparison-panel">
-          <h2>Performance Comparison</h2>
-          <div className="comparison-grid">
-            {selectedAthletes.map(athlete => (
-              <div key={athlete.id} className="comparison-column">
-                <h3>{athlete.name}</h3>
-                <div className="comparison-stats">
-                  <div className="comparison-stat">
-                    <span>World Rank</span>
-                    <strong>#{athlete.world_rank}</strong>
-                  </div>
-                  <div className="comparison-stat">
-                    <span>Points</span>
-                    <strong>{athlete.world_cup_points}</strong>
+        {/* COMPARISON PANEL */}
+        {compareMode && selectedForCompare.length >= 2 && (
+          <div className="comparison-panel">
+            <h2 className="panel-title">PERFORMANCE COMPARISON</h2>
+            <div className="comparison-grid">
+              {selectedForCompare.map(athlete => (
+                <div key={athlete.id} className="compare-column">
+                  <h3>{athlete.name}</h3>
+                  <div className="compare-stats">
+                    <div className="compare-stat">
+                      <span className="label">World Rank</span>
+                      <span className="value">#{athlete.world_rank}</span>
+                    </div>
+                    <div className="compare-stat">
+                      <span className="label">Points</span>
+                      <span className="value">{athlete.world_cup_points}</span>
+                    </div>
+                    <div className="compare-stat">
+                      <span className="label">Shooting</span>
+                      <span className="value">87%</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button className="btn btn-primary">GENERATE COMPARISON REPORT</button>
           </div>
-          <button className="analyze-btn">
-            Deep Analysis →
-          </button>
-        </div>
-      )}
+        )}
+
+        {/* ATHLETE DETAILS MODAL */}
+        {selectedAthlete && (
+          <div className="modal-overlay" onClick={() => setSelectedAthlete(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{selectedAthlete.name}</h2>
+                <button className="close-btn" onClick={() => setSelectedAthlete(null)}>✕</button>
+              </div>
+              <div className="modal-body">
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">WORLD RANKING</span>
+                    <span className="detail-value">#{selectedAthlete.world_rank}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">SEASON POINTS</span>
+                    <span className="detail-value">{selectedAthlete.world_cup_points}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">RACES COMPLETED</span>
+                    <span className="detail-value">15</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">PODIUMS</span>
+                    <span className="detail-value">3</span>
+                  </div>
+                </div>
+                
+                <div className="performance-chart">
+                  <h3>SEASON PERFORMANCE</h3>
+                  <div className="mini-chart">
+                    {[65, 78, 72, 85, 90, 88, 92, 87].map((height, i) => (
+                      <div key={i} className="chart-bar" style={{height: `${height}%`}}></div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="modal-actions">
+                  <button className="btn btn-primary">VIEW FULL PROFILE</button>
+                  <button className="btn">EXPORT DATA</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

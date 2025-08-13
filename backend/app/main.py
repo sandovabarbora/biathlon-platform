@@ -96,3 +96,7 @@ app.include_router(test_api.router, prefix="/api/v1/test", tags=["testing"])
 # Add races router
 from app.api.endpoints import races
 app.include_router(races.router, prefix="/api/v1/races", tags=["races"])
+
+# Test endpoints
+from app.api.endpoints import test
+app.include_router(test.router, prefix="/api/v1/test", tags=["test"])

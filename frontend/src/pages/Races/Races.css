@@ -1,373 +1,314 @@
+@import '../../styles/design-system.css';
+
 .races-page {
-  min-height: 100vh;
-  background: #0a0a0f;
-  padding: 2rem;
+  min-height: calc(100vh - 64px);
+  background: var(--bg-primary);
 }
 
-.races-header {
-  max-width: 1400px;
-  margin: 0 auto 2rem;
-}
-
-.header-main {
+/* VIEW TOGGLE */
+.view-toggle {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  gap: 2px;
+  background: var(--border-color);
 }
 
-.header-main h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.live-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 12px;
-  color: #ef4444;
+.view-toggle button {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-primary);
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-base);
 }
 
-.live-toggle.active {
-  background: rgba(239, 68, 68, 0.2);
-  animation: pulse 2s infinite;
+.view-toggle button:hover {
+  background: var(--bg-card);
+}
+
+.view-toggle button.active {
+  background: var(--czech-blue);
+  color: var(--text-primary);
+}
+
+/* LIVE RACE BANNER */
+.live-race-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+  background: var(--bg-card);
+  border: 2px solid var(--czech-red);
+  margin-bottom: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.live-race-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--czech-red);
+  animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--czech-red);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 .live-dot {
   width: 8px;
   height: 8px;
-  background: #ef4444;
+  background: var(--text-primary);
   border-radius: 50%;
-  animation: blink 1s infinite;
+  animation: pulse 2s infinite;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+.live-info {
+  flex: 1;
 }
 
-.live-ticker {
-  display: flex;
-  gap: 3rem;
-  padding: 1rem;
-  background: rgba(239, 68, 68, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(239, 68, 68, 0.1);
-  overflow-x: auto;
-}
-
-.ticker-item {
-  white-space: nowrap;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.races-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 2rem;
-}
-
-.races-sidebar {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 1.5rem;
-  height: fit-content;
-}
-
-.races-sidebar h2 {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-}
-
-.races-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.race-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.race-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(5px);
-}
-
-.race-item.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-}
-
-.race-date {
+.live-info h2 {
+  font-size: var(--text-2xl);
   font-weight: 700;
-  color: #3b82f6;
-  text-align: center;
-  line-height: 1.2;
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
 }
 
-.race-info h3 {
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
+.live-info p {
+  color: var(--text-secondary);
 }
 
-.race-info p {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.race-type {
-  padding: 0.25rem 0.75rem;
-  background: rgba(147, 51, 234, 0.1);
-  border: 1px solid rgba(147, 51, 234, 0.3);
-  border-radius: 20px;
-  font-size: 0.75rem;
+.btn-watch {
+  padding: var(--space-md) var(--space-xl);
+  background: transparent;
+  border: 2px solid var(--czech-red);
+  color: var(--czech-red);
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: #9333ea;
-  align-self: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-base);
 }
 
-.races-main {
+.btn-watch:hover {
+  background: var(--czech-red);
+  color: var(--text-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 var(--czech-blue);
+}
+
+/* RACES GRID */
+.races-grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.section-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--space-lg);
+}
+
+.race-card {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  transition: all var(--transition-base);
+}
+
+.race-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 4px 4px 0 var(--czech-blue);
+  border-color: var(--czech-blue);
+}
+
+.race-card.upcoming {
+  border-left: 4px solid var(--czech-blue);
+}
+
+.race-card.completed {
+  border-left: 4px solid var(--text-muted);
+  opacity: 0.9;
+}
+
+/* Race Date */
+.race-date {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
 }
 
-.race-details-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 2rem;
+.race-date .day {
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--czech-blue);
 }
 
-.race-header {
+.race-date .month {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.race-date .year {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Race Info */
+.race-info {
+  flex: 1;
+}
+
+.race-location {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: var(--space-sm);
+}
+
+.race-description {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.race-meta {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.race-meta span {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.discipline {
+  border-color: var(--czech-blue);
+  color: var(--czech-blue);
+}
+
+.race-results {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.result-item {
   display: flex;
   justify-content: space-between;
-  align-items: start;
-  margin-bottom: 2rem;
 }
 
-.race-header h2 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+.position {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.race-header p {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.race-status span {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+.athlete {
   font-weight: 600;
-  font-size: 0.875rem;
+  color: var(--czech-blue);
 }
 
-.status-upcoming {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
-}
-
-.status-completed {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
-}
-
-.czech-performance {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(17, 69, 126, 0.1) 0%, rgba(215, 20, 26, 0.05) 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(17, 69, 126, 0.2);
-}
-
-.czech-performance h3 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-}
-
-.performance-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.athlete-result {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-}
-
-.result-rank {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #3b82f6;
-}
-
-.result-info h4 {
-  margin-bottom: 0.5rem;
-}
-
-.result-stats {
+/* Race Actions */
+.race-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  gap: var(--space-sm);
+  justify-content: center;
 }
 
-.predictions-section {
-  margin-top: 2rem;
-}
-
-.predictions-section h3 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-}
-
-.predictions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.prediction-card {
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  text-align: center;
-}
-
-.prediction-card h4 {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.5rem;
-}
-
-.prediction-value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #3b82f6;
-  margin-bottom: 0.5rem;
-}
-
-.prediction-card p {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.live-tracker {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 2rem;
-}
-
-.live-tracker h3 {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-}
-
-.tracker-map {
-  margin-bottom: 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.race-map {
-  width: 100%;
-  height: auto;
-}
-
-.athlete-dot {
-  filter: drop-shadow(0 0 10px #3b82f6);
-}
-
-.live-standings h4 {
-  margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.standings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.standing-row {
-  display: grid;
-  grid-template-columns: 40px 1fr 60px 80px;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  font-size: 0.875rem;
-}
-
-.standing-pos {
-  font-weight: 700;
-  color: #3b82f6;
-}
-
-.standing-nation {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.standing-time {
-  text-align: right;
+.race-actions .action-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: 2px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
 }
 
-.no-race-selected {
-  padding: 4rem;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 20px;
+.race-actions .action-btn:hover {
+  border-color: var(--czech-blue);
+  color: var(--text-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 var(--czech-blue);
 }
 
-.no-race-selected h2 {
-  margin-bottom: 1rem;
+.race-actions .action-btn.primary {
+  background: var(--czech-blue);
+  border-color: var(--czech-blue);
+  color: var(--text-primary);
 }
 
-.no-race-selected p {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-@media (max-width: 1024px) {
-  .races-container {
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .race-card {
     grid-template-columns: 1fr;
+    gap: var(--space-md);
   }
   
-  .races-sidebar {
-    order: 2;
+  .race-date {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+  }
+  
+  .race-actions {
+    flex-direction: row;
+  }
+  
+  .live-race-banner {
+    flex-direction: column;
+    text-align: center;
   }
 }

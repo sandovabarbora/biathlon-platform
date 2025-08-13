@@ -4,216 +4,216 @@ import './Dashboard.css'
 const Dashboard = () => {
   const [athletes, setAthletes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [hoveredCard, setHoveredCard] = useState(null)
-  const [selectedMetric, setSelectedMetric] = useState('rank')
+  const [error, setError] = useState(null)
+  const [selectedMetric, setSelectedMetric] = useState('performance')
 
   useEffect(() => {
-    fetchAthletes()
+    fetchData()
   }, [])
 
-  const fetchAthletes = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/athletes?nation=CZE&limit=10')
-      const data = await response.json()
-      setAthletes(data)
+      setLoading(true)
+      setError(null)
+      
+      const athletesRes = await fetch('http://localhost:8000/api/v1/athletes?nation=CZE&limit=10')
+      if (!athletesRes.ok) throw new Error(`Athletes fetch failed: ${athletesRes.status}`)
+      const athletesData = await athletesRes.json()
+      setAthletes(athletesData)
+      
       setLoading(false)
     } catch (err) {
+      setError(err.message)
       setLoading(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-dots">
-          <div></div><div></div><div></div>
-        </div>
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading IBU Data...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="error-state">
+        <h2>Connection Error</h2>
+        <p>{error}</p>
+        <button className="btn btn-primary" onClick={fetchData}>
+          RETRY CONNECTION
+        </button>
       </div>
     )
   }
 
   const topAthlete = athletes[0]
   const totalPoints = athletes.reduce((sum, a) => sum + (parseInt(a.world_cup_points) || 0), 0)
-  const avgRank = Math.round(athletes.reduce((sum, a) => sum + parseInt(a.world_rank || 100), 0) / athletes.length)
+  const avgRank = Math.round(athletes.reduce((sum, a) => sum + (parseInt(a.world_rank) || 100), 0) / athletes.length)
 
   return (
-    <div className="dashboard-modern">
-      {/* Floating Header */}
-      <header className="floating-header">
-        <div className="header-content">
-          <div className="header-title">
-            <h1>Czech Biathlon</h1>
-            <div className="live-indicator">
-              <span className="pulse"></span>
-              LIVE DATA
-            </div>
-          </div>
-          <div className="metric-selector">
-            <button 
-              className={selectedMetric === 'rank' ? 'active' : ''}
-              onClick={() => setSelectedMetric('rank')}
-            >
-              Rankings
-            </button>
-            <button 
-              className={selectedMetric === 'points' ? 'active' : ''}
-              onClick={() => setSelectedMetric('points')}
-            >
-              Points
-            </button>
-            <button 
-              className={selectedMetric === 'trend' ? 'active' : ''}
-              onClick={() => setSelectedMetric('trend')}
-            >
-              Trends
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Bento Grid Layout */}
-      <div className="bento-grid">
-        {/* Hero Card - Top Athlete */}
-        <div 
-          className="bento-card hero-card"
-          onMouseEnter={() => setHoveredCard('hero')}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div className="card-header">
-            <span className="card-label">TOP PERFORMER</span>
-            <span className="card-badge">RANK #{topAthlete?.world_rank}</span>
-          </div>
-          <div className="hero-content">
-            <h2 className="hero-name">{topAthlete?.name}</h2>
-            <div className="hero-stats">
-              <div className="hero-stat">
-                <span className="stat-value">{topAthlete?.world_cup_points}</span>
-                <span className="stat-label">WC Points</span>
-              </div>
-              <div className="hero-stat">
-                <span className="stat-value">CZE</span>
-                <span className="stat-label">Nation</span>
-              </div>
-            </div>
-          </div>
-          <div className="card-visual">
-            <svg viewBox="0 0 200 100" className="performance-chart">
-              <polyline
-                points="0,80 40,70 80,40 120,45 160,20 200,25"
-                fill="none"
-                stroke="url(#gradient)"
-                strokeWidth="2"
-              />
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2"/>
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="1"/>
-                </linearGradient>
-              </defs>
-            </svg>
+    <div className="dashboard">
+      <div className="container">
+        {/* HEADER */}
+        <div className="page-header">
+          <h1 className="page-title">TEAM DASHBOARD</h1>
+          <div className="header-actions">
+            <button className="btn">EXPORT REPORT</button>
+            <button className="btn btn-primary">TEAM MEETING</button>
           </div>
         </div>
 
-        {/* Team Overview Card */}
-        <div 
-          className="bento-card team-card"
-          onMouseEnter={() => setHoveredCard('team')}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div className="card-header">
-            <span className="card-label">TEAM OVERVIEW</span>
-          </div>
-          <div className="team-metrics">
-            <div className="metric">
+        {/* MAIN METRICS */}
+        <div className="metrics-grid">
+          <div className="metric-card primary">
+            <div className="metric-label">TEAM PERFORMANCE INDEX</div>
+            <div className="metric-value large">87.3</div>
+            <div className="metric-change positive">
+              <span className="arrow up"></span>
+              +5.2 vs last week
+            </div>
+            <div className="metric-secondary">
+              <div className="metric-label">World Cup Points</div>
               <div className="metric-value">{totalPoints}</div>
-              <div className="metric-label">Total Points</div>
-              <div className="metric-bar">
-                <div className="metric-fill" style={{width: '75%'}}></div>
-              </div>
-            </div>
-            <div className="metric">
-              <div className="metric-value">#{avgRank}</div>
-              <div className="metric-label">Avg Rank</div>
-              <div className="metric-bar">
-                <div className="metric-fill" style={{width: `${100 - avgRank}%`}}></div>
-              </div>
             </div>
           </div>
-        </div>
-
-        {/* Quick Stats Cards */}
-        <div className="bento-card stat-card accent-blue">
-          <div className="stat-icon">🎯</div>
-          <div className="stat-content">
-            <div className="stat-number">{athletes.filter(a => parseInt(a.world_rank) <= 30).length}</div>
-            <div className="stat-text">Top 30</div>
+          
+          <div className="metric-card">
+            <div className="metric-label">BEST RANKING</div>
+            <div className="metric-value">#{topAthlete?.world_rank || 'N/A'}</div>
+            <div className="metric-sublabel">{topAthlete?.name}</div>
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-label">SHOOTING AVG</div>
+            <div className="metric-value">87%</div>
+            <div className="metric-change negative">
+              <span className="arrow down"></span>
+              -2.1%
+            </div>
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-label">ACTIVE ATHLETES</div>
+            <div className="metric-value">{athletes.length}</div>
+            <div className="metric-sublabel">All healthy</div>
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-label">NEXT RACE</div>
+            <div className="metric-value small">Oberhof</div>
+            <div className="metric-sublabel">In 3 days</div>
+          </div>
+          
+          <div className="metric-card">
+            <div className="metric-label">AVG TEAM RANK</div>
+            <div className="metric-value">#{avgRank}</div>
+            <div className="metric-sublabel">World Cup</div>
           </div>
         </div>
 
-        <div className="bento-card stat-card accent-purple">
-          <div className="stat-icon">⚡</div>
-          <div className="stat-content">
-            <div className="stat-number">{athletes.length}</div>
-            <div className="stat-text">Athletes</div>
-          </div>
+        {/* QUICK ACTIONS */}
+        <div className="quick-actions">
+          <button className="action-card">
+            <span className="action-icon">▲</span>
+            <span className="action-label">Training Plans</span>
+          </button>
+          <button className="action-card">
+            <span className="action-icon">■</span>
+            <span className="action-label">Competition Analysis</span>
+          </button>
+          <button className="action-card">
+            <span className="action-icon">●</span>
+            <span className="action-label">Shooting Stats</span>
+          </button>
+          <button className="action-card">
+            <span className="action-icon">◆</span>
+            <span className="action-label">Recovery Status</span>
+          </button>
         </div>
 
-        {/* Athletes List Card */}
-        <div className="bento-card athletes-list-card">
-          <div className="card-header">
-            <span className="card-label">ATHLETE ROSTER</span>
-            <button className="view-all">View All →</button>
+        {/* ATHLETES TABLE */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">ATHLETES PERFORMANCE</h2>
+            <div className="filter-tabs">
+              <button className="filter-tab active">ALL</button>
+              <button className="filter-tab">TOP FORM</button>
+              <button className="filter-tab">NEEDS ATTENTION</button>
+            </div>
           </div>
-          <div className="athletes-list">
-            {athletes.slice(0, 5).map((athlete, index) => (
-              <div 
-                key={athlete.id} 
-                className="athlete-row"
-                style={{animationDelay: `${index * 0.1}s`}}
-              >
-                <div className="athlete-position">{index + 1}</div>
-                <div className="athlete-info">
-                  <div className="athlete-name">{athlete.name}</div>
-                  <div className="athlete-meta">Rank #{athlete.world_rank}</div>
+
+          <div className="athletes-table">
+            {athletes.map((athlete) => {
+              const rank = parseInt(athlete.world_rank) || 999
+              const rankClass = rank <= 30 ? 'top' : rank <= 50 ? 'mid' : ''
+              
+              return (
+                <div key={athlete.id} className="athlete-row">
+                  <div className={`rank-badge ${rankClass}`}>
+                    #{athlete.world_rank || 'N/A'}
+                  </div>
+                  <div className="athlete-info">
+                    <div className="athlete-name">{athlete.name}</div>
+                    <div className="athlete-id">IBU: {athlete.id}</div>
+                  </div>
+                  <div className="athlete-stat">
+                    <span className="stat-value">{athlete.world_cup_points || 0}</span>
+                    <span className="stat-label">POINTS</span>
+                  </div>
+                  <div className="athlete-stat">
+                    <span className="stat-value">87%</span>
+                    <span className="stat-label">SHOOTING</span>
+                  </div>
+                  <div className="athlete-stat">
+                    <span className="stat-value positive">+2</span>
+                    <span className="stat-label">TREND</span>
+                  </div>
+                  <button className="btn-analyze">ANALYZE</button>
                 </div>
-                <div className="athlete-points">
-                  <div className="points-value">{athlete.world_cup_points}</div>
-                  <div className="points-label">pts</div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
-        {/* Live Activity Card */}
-        <div className="bento-card activity-card">
-          <div className="card-header">
-            <span className="card-label">RECENT ACTIVITY</span>
-            <span className="activity-indicator"></span>
+        {/* PERFORMANCE CHART */}
+        <div className="chart-section">
+          <div className="chart-header">
+            <h3 className="chart-title">TEAM PERFORMANCE TREND</h3>
+            <div className="time-range">
+              <button className="time-btn">WEEK</button>
+              <button className="time-btn active">MONTH</button>
+              <button className="time-btn">SEASON</button>
+            </div>
           </div>
-          <div className="activity-feed">
-            <div className="activity-item">
-              <div className="activity-dot"></div>
-              <div className="activity-content">
-                <div className="activity-title">World Cup Update</div>
-                <div className="activity-time">2 hours ago</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-dot"></div>
-              <div className="activity-content">
-                <div className="activity-title">Training Session</div>
-                <div className="activity-time">5 hours ago</div>
-              </div>
-            </div>
+          <div className="chart-container">
+            <div className="chart-bar" style={{height: '60%'}}></div>
+            <div className="chart-bar" style={{height: '75%'}}></div>
+            <div className="chart-bar" style={{height: '70%'}}></div>
+            <div className="chart-bar" style={{height: '85%'}}></div>
+            <div className="chart-bar" style={{height: '80%'}}></div>
+            <div className="chart-bar" style={{height: '90%'}}></div>
+            <div className="chart-bar" style={{height: '95%'}}></div>
+            <div className="chart-bar" style={{height: '88%'}}></div>
+          </div>
+        </div>
+
+        {/* STATUS BAR */}
+        <div className="status-bar">
+          <div className="status-item">
+            <span className="status-dot active"></span>
+            Data synchronized 2 minutes ago
+          </div>
+          <div className="status-item">
+            IBU Data API v2.1
+          </div>
+          <div className="status-item">
+            Next update in 28 minutes
           </div>
         </div>
       </div>
-
-      {/* Floating Action Button */}
-      <button className="fab">
-        <span>+</span>
-      </button>
     </div>
   )
 }

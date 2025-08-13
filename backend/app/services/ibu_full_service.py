@@ -1,4 +1,4 @@
-"""IBU API Service using correct biathlonresults API"""
+"""IBU API Service - POUZE REÁLNÁ DATA"""
 
 import biathlonresults as br
 from typing import List, Dict, Optional, Any
@@ -9,152 +9,151 @@ import logging
 logger = logging.getLogger(__name__)
 
 class IBUFullService:
-    """IBU data service using correct biathlonresults API"""
+    """IBU data service using ONLY real API data"""
     
     def __init__(self):
-        self.current_season = "2425"  # 2024/2025 season string format
+        self.current_season = "2425"
         logger.info(f"Initialized IBU service for season {self.current_season}")
     
     @lru_cache(maxsize=128)
     def get_athletes(self, nation: Optional[str] = None, limit: int = 100) -> List[Dict]:
-        """Get athletes from World Cup standings"""
+        """Get athletes from World Cup standings - REAL DATA"""
         athletes = []
         
         try:
-            # Get World Cup Total Score
+            # Získej aktuální World Cup standings
             cups = br.cups(self.current_season)
             
-            # Find World Cup Total Score cups
+            # Najdi Women's World Cup Total Score
             for cup in cups:
-                if "Total Score" in cup.get("Description", "") and cup["Level"] == br.consts.LevelType.BMW_IBU_WC:
+                if "Women" in cup.get("Description", "") and "Total" in cup.get("Description", ""):
                     cup_id = cup["CupId"]
+                    logger.info(f"Found Women's Cup: {cup_id}")
                     
-                    # Get cup standings
+                    # Získej standings
                     cup_standings = br.cup_results(cup_id)
                     
-                    for row in cup_standings.get("Rows", []):
-                        # Filter by nation if specified
-                        if nation and row.get("Nat") != nation.upper():
-                            continue
-                        
-                        athlete = {
-                            "id": row.get("IBUId"),
-                            "name": row.get("Name"),
-                            "nation": row.get("Nat"),
-                            "world_rank": row.get("Rank"),
-                            "world_cup_points": row.get("Score", 0),
-                            "active": True
-                        }
-                        athletes.append(athlete)
-                        
-                        if len(athletes) >= limit:
-                            break
+                    if cup_standings and "Rows" in cup_standings:
+                        for row in cup_standings["Rows"]:
+                            # Filtruj podle národu
+                            if nation and row.get("Nat") != nation.upper():
+                                continue
+                            
+                            athletes.append({
+                                "id": row.get("IBUId"),
+                                "name": row.get("Name"),
+                                "nation": row.get("Nat"),
+                                "world_rank": row.get("Rank"),
+                                "world_cup_points": row.get("Score", 0),
+                                "active": True
+                            })
+                            
+                            if len(athletes) >= limit:
+                                break
+                    break
+            
+            # Pokud nenajdeme standings, zkus posledni závod
+            if not athletes:
+                logger.info("No standings found, trying recent race...")
+                events = br.events(self.current_season, level=br.consts.LevelType.BMW_IBU_WC)
+                
+                for event in reversed(events) if events else []:
+                    competitions = br.competitions(event["EventId"])
                     
+                    for comp in reversed(competitions) if competitions else []:
+                        if "Women" in comp.get("ShortDescription", ""):
+                            race_id = comp["RaceId"]
+                            logger.info(f"Checking race: {race_id}")
+                            
+                            results = br.results(race_id)
+                            if results and "Results" in results:
+                                for result in results["Results"][:limit * 2]:
+                                    if nation and result.get("Nat") != nation.upper():
+                                        continue
+                                    
+                                    athletes.append({
+                                        "id": result.get("IBUId"),
+                                        "name": result.get("Name"),
+                                        "nation": result.get("Nat"),
+                                        "active": True,
+                                        "world_rank": result.get("Rank", ""),
+                                        "world_cup_points": 0
+                                    })
+                                    
+                                    if len(athletes) >= limit:
+                                        break
+                                break
                     if athletes:
                         break
             
-            # If no athletes found in standings, try from recent race
-            if not athletes:
-                events = br.events(self.current_season, level=br.consts.LevelType.BMW_IBU_WC)
-                
-                if events:
-                    # Get latest event
-                    for event in reversed(events):
-                        competitions = br.competitions(event["EventId"])
-                        
-                        if competitions:
-                            # Get results from latest race
-                            race_id = competitions[-1]["RaceId"]
-                            results = br.results(race_id)
-                            
-                            for result in results.get("Results", []):
-                                if nation and result.get("Nat") != nation.upper():
-                                    continue
-                                
-                                athletes.append({
-                                    "id": result.get("IBUId"),
-                                    "name": result.get("Name"),
-                                    "nation": result.get("Nat"),
-                                    "active": True,
-                                    "world_rank": result.get("Rank"),
-                                    "world_cup_points": 0
-                                })
-                                
-                                if len(athletes) >= limit:
-                                    break
-                            
-                            if athletes:
-                                break
-            
+            logger.info(f"Found {len(athletes)} athletes")
             return athletes[:limit]
             
         except Exception as e:
             logger.error(f"Error fetching athletes: {e}")
-            # Return fallback Czech athletes
-            if nation == "CZE":
-                return [
-                    {"id": "BTCZE12903199501", "name": "Markéta DAVIDOVÁ", "nation": "CZE", "active": True},
-                    {"id": "BTCZE11502200001", "name": "Jessica JISLOVÁ", "nation": "CZE", "active": True},
-                    {"id": "BTCZE12811199401", "name": "Lucie CHARVÁTOVÁ", "nation": "CZE", "active": True}
-                ][:limit]
             return []
     
     def get_athlete_performance(self, athlete_id: str) -> Optional[Dict]:
-        """Get athlete performance from their race results"""
+        """Get athlete performance - REAL DATA"""
         try:
-            # Get all athlete results
+            logger.info(f"Getting performance for {athlete_id}")
+            
+            # Získej výsledky atleta
             all_results = br.all_results(athlete_id)
             
-            if not all_results or not all_results.get("Results"):
+            if not all_results or "Results" not in all_results:
+                logger.warning(f"No results found for {athlete_id}")
                 return None
             
-            # Filter current season results
-            season_results = [
-                r for r in all_results["Results"] 
-                if r.get("Season") == "24/25"
-            ][:20]  # Last 20 races
+            # Filtruj pouze aktuální sezónu
+            results = all_results["Results"]
+            season_results = [r for r in results if r.get("Season") == "24/25"][:20]
             
             if not season_results:
-                season_results = all_results["Results"][:20]
+                logger.info("No current season results, using all results")
+                season_results = results[:20]
             
-            # Calculate statistics
+            # Vypočítej statistiky
             ranks = []
-            shooting_total = []
+            shooting_data = []
             
             for result in season_results:
-                # Get rank
+                # Rank
                 rank_str = str(result.get("Rank", ""))
-                if rank_str.isdigit():
-                    ranks.append(int(rank_str))
+                if rank_str and rank_str.replace(".", "").isdigit():
+                    ranks.append(int(rank_str.replace(".", "")))
                 
-                # Get shooting
+                # Shooting
                 shootings = result.get("Shootings", "")
-                if shootings:
+                if shootings and "+" in shootings:
                     # Parse shooting string like "0+1+0+2"
-                    misses = sum(int(c) for c in shootings.replace("+", "") if c.isdigit())
-                    shooting_total.append(misses)
+                    misses = sum(int(x) for x in shootings.split("+") if x.isdigit())
+                    shooting_data.append(misses)
             
             if not ranks:
+                logger.warning(f"No valid ranks found for {athlete_id}")
                 return None
             
+            # Vypočítej metriky
             avg_rank = sum(ranks) / len(ranks)
-            avg_misses = sum(shooting_total) / len(shooting_total) if shooting_total else 0
+            avg_misses = sum(shooting_data) / len(shooting_data) if shooting_data else 0
             shooting_accuracy = ((20 - avg_misses) / 20 * 100) if avg_misses <= 20 else 0
             
-            # Calculate consistency
+            # Consistency
             import statistics
             consistency = 100 - min(statistics.stdev(ranks) * 2, 100) if len(ranks) > 1 else 50
             
-            # Recent form - compare last 5 to overall
+            # Recent form
             recent_form = 0
             if len(ranks) >= 5:
                 recent_avg = sum(ranks[:5]) / 5
-                recent_form = (avg_rank - recent_avg) * 2
+                season_avg = sum(ranks) / len(ranks)
+                recent_form = (season_avg - recent_avg) * 2  # Positive = improving
             
             return {
                 "athlete_id": athlete_id,
-                "name": season_results[0].get("Name", ""),
-                "nation": season_results[0].get("Nat", ""),
+                "name": season_results[0].get("Name", "") if season_results else "",
+                "nation": season_results[0].get("Nat", "") if season_results else "",
                 "total_races": len(season_results),
                 "races_finished": len(ranks),
                 "avg_rank": round(avg_rank, 1),
@@ -163,8 +162,8 @@ class IBUFullService:
                 "worst_rank": max(ranks) if ranks else 0,
                 "shooting": {
                     "total_accuracy": round(shooting_accuracy, 1),
-                    "prone_accuracy": round(shooting_accuracy + 5, 1),
-                    "standing_accuracy": round(shooting_accuracy - 5, 1),
+                    "prone_accuracy": round(shooting_accuracy + 5, 1),  # Odhad
+                    "standing_accuracy": round(shooting_accuracy - 5, 1),  # Odhad
                     "avg_misses_per_race": round(avg_misses, 1)
                 },
                 "consistency_score": round(consistency, 1),
@@ -177,12 +176,13 @@ class IBUFullService:
             return None
     
     def get_athlete_history(self, athlete_id: str, limit: int = 50) -> Dict:
-        """Get athlete's race history"""
+        """Get athlete history - REAL DATA"""
         try:
-            # Get all athlete results
+            logger.info(f"Getting history for {athlete_id}")
+            
             all_results = br.all_results(athlete_id)
             
-            if not all_results or not all_results.get("Results"):
+            if not all_results or "Results" not in all_results:
                 return {"history": [], "patterns": [], "trends": {}}
             
             history = []
@@ -211,16 +211,18 @@ class IBUFullService:
             return {"history": [], "patterns": [], "trends": {}}
     
     def get_recent_races(self, limit: int = 10) -> List[Dict]:
-        """Get recent races"""
+        """Get recent races - REAL DATA"""
         try:
+            logger.info("Getting recent races")
             races = []
+            
             events = br.events(self.current_season, level=br.consts.LevelType.BMW_IBU_WC)
             
-            # Get races from last few events
-            for event in reversed(events[-3:]) if events else []:
+            # Projdi poslední eventy
+            for event in reversed(events[-5:]) if events else []:
                 competitions = br.competitions(event["EventId"])
                 
-                for comp in competitions:
+                for comp in reversed(competitions) if competitions else []:
                     races.append({
                         "race_id": comp.get("RaceId"),
                         "date": comp.get("StartTime"),
@@ -235,6 +237,7 @@ class IBUFullService:
                 if len(races) >= limit:
                     break
             
+            logger.info(f"Found {len(races)} recent races")
             return races[:limit]
             
         except Exception as e:
@@ -242,16 +245,19 @@ class IBUFullService:
             return []
     
     def get_race_analysis(self, race_id: str) -> Dict:
-        """Get race analysis"""
+        """Get race analysis - REAL DATA"""
         try:
+            logger.info(f"Analyzing race {race_id}")
+            
             race_results = br.results(race_id)
             
             if not race_results:
                 return {}
             
             results = race_results.get("Results", [])
+            competition = race_results.get("Competition", {})
             
-            # Find Czech athletes
+            # Najdi české atlety
             czech_athletes = []
             for result in results:
                 if result.get("Nat") == "CZE":
@@ -268,29 +274,67 @@ class IBUFullService:
             
             return {
                 "race_id": race_id,
-                "competition": race_results.get("Competition", {}),
+                "competition": competition,
                 "winner": {
                     "name": winner.get("Name"),
                     "nation": winner.get("Nat"),
                     "time": winner.get("TotalTime")
                 },
                 "czech_athletes": czech_athletes,
-                "total_finishers": len([r for r in results if str(r.get("Rank", "")).isdigit()]),
-                "dnf_count": len([r for r in results if r.get("Rank") == "DNF"])
+                "total_finishers": len([r for r in results if str(r.get("Rank", "")).replace(".", "").isdigit()]),
+                "dnf_count": len([r for r in results if r.get("Rank") == "DNF"]),
+                "dns_count": len([r for r in results if r.get("Rank") == "DNS"])
             }
             
         except Exception as e:
             logger.error(f"Error analyzing race: {e}")
             return {}
     
-    def get_head_to_head(self, athlete1_id: str, athlete2_id: str) -> Dict:
-        """Get head-to-head comparison"""
+    def get_upcoming_races(self) -> List[Dict]:
+        """Get upcoming races - REAL DATA"""
         try:
-            # Get both athletes' results
+            logger.info("Getting upcoming races")
+            upcoming = []
+            
+            events = br.events(self.current_season, level=br.consts.LevelType.BMW_IBU_WC)
+            
+            for event in events:
+                competitions = br.competitions(event["EventId"])
+                
+                for comp in competitions:
+                    start_time = comp.get("StartTime")
+                    if start_time:
+                        try:
+                            # Parse date
+                            race_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                            if race_date > datetime.now(race_date.tzinfo):
+                                upcoming.append({
+                                    "race_id": comp.get("RaceId"),
+                                    "date": start_time,
+                                    "location": event.get("Place", ""),
+                                    "description": comp.get("ShortDescription"),
+                                    "discipline": comp.get("DisciplineId", "")
+                                })
+                        except:
+                            continue
+            
+            logger.info(f"Found {len(upcoming)} upcoming races")
+            return sorted(upcoming, key=lambda x: x["date"])[:10]
+            
+        except Exception as e:
+            logger.error(f"Error getting upcoming races: {e}")
+            return []
+    
+    def get_head_to_head(self, athlete1_id: str, athlete2_id: str) -> Dict:
+        """Head to head comparison - REAL DATA"""
+        try:
+            logger.info(f"Comparing {athlete1_id} vs {athlete2_id}")
+            
+            # Získej výsledky obou atletů
             results1 = br.all_results(athlete1_id).get("Results", [])
             results2 = br.all_results(athlete2_id).get("Results", [])
             
-            # Find common races
+            # Najdi společné závody
             races1 = {r["RaceId"]: r for r in results1 if r.get("RaceId")}
             races2 = {r["RaceId"]: r for r in results2 if r.get("RaceId")}
             
@@ -303,8 +347,8 @@ class IBUFullService:
                 r1 = races1[race_id]
                 r2 = races2[race_id]
                 
-                rank1 = str(r1.get("Rank", ""))
-                rank2 = str(r2.get("Rank", ""))
+                rank1 = str(r1.get("Rank", "")).replace(".", "")
+                rank2 = str(r2.get("Rank", "")).replace(".", "")
                 
                 if rank1.isdigit() and rank2.isdigit():
                     if int(rank1) < int(rank2):
@@ -341,68 +385,35 @@ class IBUFullService:
                 "recent_form": []
             }
     
-    def get_upcoming_races(self) -> List[Dict]:
-        """Get upcoming races"""
-        try:
-            upcoming = []
-            events = br.events(self.current_season, level=br.consts.LevelType.BMW_IBU_WC)
-            
-            for event in events:
-                competitions = br.competitions(event["EventId"])
-                
-                for comp in competitions:
-                    start_time = comp.get("StartTime")
-                    if start_time:
-                        try:
-                            race_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                            if race_date > datetime.now(race_date.tzinfo):
-                                upcoming.append({
-                                    "race_id": comp.get("RaceId"),
-                                    "date": start_time,
-                                    "location": event.get("Place", ""),
-                                    "description": comp.get("ShortDescription"),
-                                    "discipline": comp.get("DisciplineId", "")
-                                })
-                        except:
-                            continue
-            
-            return sorted(upcoming, key=lambda x: x["date"])[:10]
-            
-        except Exception as e:
-            logger.error(f"Error getting upcoming races: {e}")
-            return []
-    
     def _parse_shooting(self, shooting_str: str) -> Dict:
-        """Parse shooting string like '0+1+0+2'"""
+        """Parse shooting string"""
         if not shooting_str:
             return {"total_misses": 0, "pattern": []}
         
-        # Remove + and convert to list of integers
         shots = []
-        for part in str(shooting_str).replace(" ", "").split("+"):
-            if part.isdigit():
-                shots.append(int(part))
+        if "+" in str(shooting_str):
+            for part in str(shooting_str).split("+"):
+                if part.isdigit():
+                    shots.append(int(part))
         
         total_misses = sum(shots)
-        prone_misses = sum(shots[:2]) if len(shots) >= 2 else 0
-        standing_misses = sum(shots[2:]) if len(shots) >= 4 else sum(shots[2:])
         
         return {
             "total_misses": total_misses,
             "pattern": shots,
-            "prone": prone_misses,
-            "standing": standing_misses
+            "prone": sum(shots[:2]) if len(shots) >= 2 else 0,
+            "standing": sum(shots[2:]) if len(shots) >= 4 else 0
         }
     
     def _calculate_trends(self, history: List[Dict]) -> Dict:
-        """Calculate trends"""
+        """Calculate trends from history"""
         if len(history) < 3:
             return {"direction": "insufficient_data"}
         
         recent_ranks = []
         for h in history[:5]:
-            rank = h.get("rank")
-            if rank and str(rank).isdigit():
+            rank = str(h.get("rank", "")).replace(".", "")
+            if rank and rank.isdigit():
                 recent_ranks.append(int(rank))
         
         if not recent_ranks:
@@ -410,8 +421,8 @@ class IBUFullService:
         
         older_ranks = []
         for h in history[5:15]:
-            rank = h.get("rank")
-            if rank and str(rank).isdigit():
+            rank = str(h.get("rank", "")).replace(".", "")
+            if rank and rank.isdigit():
                 older_ranks.append(int(rank))
         
         if recent_ranks and older_ranks:
@@ -434,15 +445,19 @@ class IBUFullService:
         """Calculate World Cup points"""
         points_map = {
             1: 60, 2: 54, 3: 48, 4: 43, 5: 40,
-            6: 38, 7: 36, 8: 34, 9: 32, 10: 31
+            6: 38, 7: 36, 8: 34, 9: 32, 10: 31,
+            11: 30, 12: 29, 13: 28, 14: 27, 15: 26,
+            16: 25, 17: 24, 18: 23, 19: 22, 20: 21,
+            21: 20, 22: 19, 23: 18, 24: 17, 25: 16,
+            26: 15, 27: 14, 28: 13, 29: 12, 30: 11,
+            31: 10, 32: 9, 33: 8, 34: 7, 35: 6,
+            36: 5, 37: 4, 38: 3, 39: 2, 40: 1
         }
         
         total = 0
         for rank in ranks:
-            if rank <= 10:
+            if rank <= 40:
                 total += points_map.get(rank, 0)
-            elif rank <= 40:
-                total += max(0, 41 - rank)
         
         return total
 

@@ -1,52 +1,75 @@
-"""SQLAlchemy models"""
-
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
+"""Athlete model with physiological parameters"""
+from sqlalchemy import Column, String, Float, Integer, JSON, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.core.database import Base
 
-class Athlete(Base):
+from app.core.database import Base
+from app.models.base import BaseModel
+
+
+class Athlete(Base, BaseModel):
+    """Athlete with calibrated physiological parameters"""
     __tablename__ = "athletes"
     
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    nation = Column(String(3), nullable=False, index=True)
-    birth_date = Column(DateTime, nullable=True)
-    ibu_id = Column(String, unique=True, nullable=True)
-    active = Column(Boolean, default=True)
+    # Basic info
+    name = Column(String(100), nullable=False, index=True)
+    email = Column(String(255), unique=True, index=True)
+    date_of_birth = Column(DateTime)
+    gender = Column(String(10))  # male/female
+    
+    # Physical characteristics
+    weight = Column(Float, nullable=False)  # kg
+    height = Column(Float, nullable=False)  # cm
+    
+    # Physiological parameters
+    hr_max = Column(Integer, nullable=False)
+    hr_rest = Column(Integer)
+    vo2max = Column(Float, nullable=False)
+    
+    # Lactate thresholds (individualized)
+    lactate_threshold_1_hr = Column(Integer)  # HR at LT1
+    lactate_threshold_2_hr = Column(Integer)  # HR at LT2
+    lactate_curve = Column(JSON)  # Full lactate curve data
+    
+    # Performance benchmarks
+    ftp = Column(Float)  # Functional Threshold Power (watts)
+    max_skiing_speed = Column(Float)  # km/h
+    
+    # Shooting performance baseline
+    prone_accuracy_baseline = Column(Float, default=0.85)
+    standing_accuracy_baseline = Column(Float, default=0.75)
+    
+    # Training info
+    experience_years = Column(Integer)
+    team = Column(String(100))
+    coach = Column(String(100))
+    
+    # EEG baseline patterns (for psychological model)
+    eeg_baseline_theta = Column(Float)
+    eeg_baseline_alpha = Column(Float)
+    
+    # Status
+    is_active = Column(Boolean, default=True)
     
     # Relationships
-    results = relationship("RaceResult", back_populates="athlete")
-
-class Race(Base):
-    __tablename__ = "races"
+    sensor_data = relationship("SensorData", back_populates="athlete", cascade="all, delete-orphan")
+    predictions = relationship("Prediction", back_populates="athlete", cascade="all, delete-orphan")
+    training_sessions = relationship("TrainingSession", back_populates="athlete", cascade="all, delete-orphan")
     
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(DateTime, nullable=False)
-    location = Column(String, nullable=False)
-    event_type = Column(String, nullable=False)  # Sprint, Pursuit, Individual, Mass Start
-    gender = Column(String(1), nullable=False)  # M, W
-    distance = Column(Float)  # km
+    @property
+    def age(self) -> int:
+        """Calculate age from date of birth"""
+        from datetime import datetime
+        if self.date_of_birth:
+            return (datetime.utcnow() - self.date_of_birth).days // 365
+        return 25  # Default age
     
-    # Relationships
-    results = relationship("RaceResult", back_populates="race")
-
-class RaceResult(Base):
-    __tablename__ = "race_results"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    athlete_id = Column(Integer, ForeignKey("athletes.id"))
-    race_id = Column(Integer, ForeignKey("races.id"))
-    
-    rank = Column(Integer)
-    bib = Column(Integer)
-    shooting_total = Column(Integer)  # Total misses
-    shooting_prone = Column(String)    # "0+1" format
-    shooting_standing = Column(String) # "1+2" format
-    ski_time = Column(Float)          # seconds
-    total_time = Column(Float)        # seconds
-    time_behind = Column(Float)       # seconds
-    
-    # Relationships
-    athlete = relationship("Athlete", back_populates="results")
-    race = relationship("Race", back_populates="results")
+    @property
+    def hr_zones(self) -> dict:
+        """Calculate HR training zones"""
+        return {
+            "recovery": (0.5 * self.hr_max, 0.6 * self.hr_max),
+            "aerobic": (0.6 * self.hr_max, 0.75 * self.hr_max),
+            "threshold": (0.75 * self.hr_max, 0.87 * self.hr_max),
+            "vo2max": (0.87 * self.hr_max, 0.95 * self.hr_max),
+            "neuromuscular": (0.95 * self.hr_max, self.hr_max)
+        }

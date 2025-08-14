@@ -1,0 +1,60 @@
+biathlon-digital-twin/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── v1/
+│   │   │       ├── endpoints/
+│   │   │       ├── dependencies/
+│   │   │       └── middleware/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── ml/
+│   │       ├── models/
+│   │       ├── preprocessing/
+│   │       └── training/
+│   ├── tests/
+│   ├── migrations/
+│   ├── scripts/
+│   ├── pyproject.toml
+│   └── .python-version
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   │   ├── ui/
+│   │   │   ├── charts/
+│   │   │   ├── forms/
+│   │   │   └── layout/
+│   │   ├── lib/
+│   │   │   ├── api/
+│   │   │   ├── store/
+│   │   │   ├── utils/
+│   │   │   └── constants/
+│   │   ├── hooks/
+│   │   │   ├── api/
+│   │   │   ├── state/
+│   │   │   └── utils/
+│   │   ├── types/
+│   │   └── styles/
+│   ├── public/
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── next.config.js
+├── infrastructure/
+│   ├── docker/
+│   ├── k8s/
+│   └── monitoring/
+├── data/
+│   ├── raw/
+│   └── processed/
+├── models/
+├── notebooks/
+├── docs/
+├── docker-compose.yml
+├── Makefile
+├── setup.sh
+├── .gitignore
+├── .env.example
+└── .pre-commit-config.yaml

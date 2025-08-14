@@ -1,38 +1,53 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
+venv/
+env/
 *.egg-info/
 .pytest_cache/
 .coverage
-.mypy_cache/
+htmlcov/
 .ruff_cache/
 
 # Node
 node_modules/
+.next/
+out/
 dist/
-build/
+*.log
+npm-debug.log*
 
 # Environment
 .env
 .env.local
-*.local
+.env.*.local
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
 .DS_Store
 
-# Logs
-*.log
-
 # Data
-*.db
-*.sqlite
-data/*.csv
-!data/.gitkeep
+*.csv
+*.parquet
+*.h5
+*.pkl
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
 
-# Cache
-.cache/
-tmp/
+# Models
+models/*.pkl
+models/*.h5
+models/*.onnx
+!models/.gitkeep
+
+# UV
+.uv/
